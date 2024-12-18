@@ -1,1 +1,1 @@
-# comfyUI-nsfw-detection
+# ComfyUI-KAndy Nodes
