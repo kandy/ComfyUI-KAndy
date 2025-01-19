@@ -575,8 +575,8 @@ class TextTokens:
 
 
 import folder_paths as comfy_paths
-import traceback 
-
+import piexif
+import piexif.helper
 
 class KAndyImageSave:
     def __init__(self):
@@ -590,7 +590,8 @@ class KAndyImageSave:
                 "images": ("IMAGE", ),
                 "output_path": ("STRING", {"default": '[time(%Y-%m-%d)]', "multiline": False}),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
-                "filename_delimiter": ("STRING", {"default":"_"}),
+                "positive": ("STRING",  {"default": '', "multiline": True, "tooltip": "positive prompt"}),
+                "negative": ("STRING",  {"default": '', "multiline": True, "tooltip": "negative prompt"}),
             },
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
@@ -605,8 +606,10 @@ class KAndyImageSave:
     OUTPUT_NODE = True
 
     CATEGORY = "KAndy"
+    DESCRIPTION = "Save images with civitai-compatible generation metadata"
 
     def save_images(self, images, output_path='', filename_prefix="ComfyUI", filename_delimiter='_',
+                        positive = '', negative='',
                         extension='jpg', dpi=300, quality=100, optimize_image="true", lossless_webp="false", prompt=None, extra_pnginfo=None,
                         overwrite_mode='false', filename_number_padding=4, filename_number_start='false',
                         show_previews="false"):
@@ -678,6 +681,16 @@ class KAndyImageSave:
             output_file = os.path.abspath(os.path.join(output_path, file))
             img.save(output_file, quality=quality, optimize=(optimize_image == "true"), dpi=(dpi, dpi))
             
+
+            a111_params = positive + negative
+
+            exif_bytes = piexif.dump({
+                "Exif": {
+                    piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(a111_params, encoding="unicode")
+                },
+            })
+            piexif.insert(exif_bytes, output_file)
+
             output_files.append(output_file)
 
         
