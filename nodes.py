@@ -325,8 +325,6 @@ class KPromtGen:
 
 import uuid
 from PIL import Image
-from datetime import datetime, timezone
-
 
 class KCivitaiPostAPI:
     """Post a set of images to Civitai"""
@@ -486,7 +484,7 @@ class KCivitaiPostAPI:
             "title": title,
             "description": description,
             "tags": [],
-            "publishedAt": str(datetime.now(timezone.utc).isoformat()),
+            "publishedAt": str(datetime.datetime.now(datetime.timezone.utc).isoformat()),
             "collectionId": None,
             "collectionTagId": None,
             "authed": True
@@ -682,7 +680,7 @@ class KAndyImageSave:
             img.save(output_file, quality=quality, optimize=(optimize_image == "true"), dpi=(dpi, dpi))
             
 
-            a111_params = positive + negative
+            a111_params = positive + " \n " + negative
 
             exif_bytes = piexif.dump({
                 "Exif": {
@@ -703,6 +701,42 @@ class KAndyImageSave:
             return {"ui": {"images": []}, "result": (images, output_files,)}
 
 
+class KandySimplePrompt: 
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "prompt": ("STRING", {"multiline": True}), 
+            },
+            "optional":{ 
+                "add_prompt": ("STRING", {"multiline": True, "forceInput": True}),
+            } 
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("PROMPT_TXT",)
+
+    FUNCTION = "node"
+
+    CATEGORY = "KAndy"
+ 
+    def node(self, prompt="", add_prompt=""): 
+        out = self.replace_random_part(prompt  + "," + add_prompt)
+        return(out,)
+
+    def replace_random_part(self, text): 
+        matches = re.findall(r'\{([^{}]*)\}', text)
+         
+        for match in matches: 
+            options = match.split('|') 
+            replacement = random.choice(options) 
+            text = text.replace('{' + match + '}', replacement, 1)
+         
+        text = text.replace('|', '').replace('{', '').replace('}', '')
+        
+        return text
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -714,7 +748,8 @@ NODE_CLASS_MAPPINGS = {
     "KPromtGen": KPromtGen,
     "KPornImageAPI": KPornImageAPI,
     "KCivitaiPostAPI": KCivitaiPostAPI,
-    "KAndyImageSave": KAndyImageSave
+    "KAndyImageSave": KAndyImageSave,
+    "KandySimplePrompt": KandySimplePrompt
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -722,10 +757,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KAndyCivitPromptAPI": " Civit Prompt API",
     "KAndyLoadImageFromUrl": "Load Image From Url",
     "KAndyCivitImagesAPI": "Civit Images API",
-    "KAndyNoiseCondition": "KAndyNoiseCondition",
-    "KAndyImagesByCss": "KAndyImagesByCss",
+    "KAndyNoiseCondition": "NoiseCondition",
+    "KAndyImagesByCss": "ImagesByCss",
     "KPromtGen": "Promt Generator",
-    "KPornImageAPI": "KPornImageAPI",
+    "KPornImageAPI": "PornImageAPI",
     "KCivitaiPostAPI": "Civitai Post API",
-    "KAndyImageSave": "Image Save"
+    "KAndyImageSave": "Image Save",
+    "KandySimplePrompt": "Simple Prompt"
 }
