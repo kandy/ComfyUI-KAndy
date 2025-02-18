@@ -16,7 +16,7 @@ class KCivitPromptAPI:
                 "modelId": ("STRING",),
                 "username": ("STRING",),
                 "period": (["AllTime", "Year", "Month", "Week", "Day", ""],), 
-                "nsfw": (["Soft", "Mature", "X", ""],),
+                "nsfw": (["Soft", "Mature", "X", "XXX", "All", ""],),
                 "sort": (["Most Reactions", "Most Comments","Newest", ""],) 
             }
         }
@@ -311,12 +311,11 @@ class KPromtGen:
     def gen(self, seed, n, replace_underscore = False):
         """ Add n random elements from zTokens array to the prompt """
 
-        components = ['BREAK']
+        components = []
         zLen = len(self.z_tokens)
         for _ in range(n):
             token = self.z_tokens[self.rng.randint(1, zLen - 1)]['name'] 
-            if replace_underscore:
-                token = token.replace("_", " ")
+            token = token.replace("_", " ") if replace_underscore else token
             components.append(token)
         
         self.rng.shuffle(components)
@@ -362,14 +361,12 @@ class KCivitaiPostAPI:
             "accept": "*/*",
             "content-type": "application/json",
             "cookie": cookie,
-            "referer": "https://civitai.com/posts/create",
+            "referer": "https://civitai.com/posts/edit?src=generator",
         }
 
         # Step 1: Create a post
         post_data = {
             "json": {
-                "modelVersionId": None,
-                "tag": None,
                 "authed": True
             },
             "meta": {
@@ -446,6 +443,7 @@ class KCivitaiPostAPI:
                     "json": {
                         "name": image_path.split("/")[-1],
                         "url": upload_url.split("?")[0].split("/")[-1],
+                        "generationProcess": "txt2img", 
                         "hash": hash,
                         "height": height,
                         "width": width,
@@ -454,7 +452,53 @@ class KCivitaiPostAPI:
                         "index": index,
                         "mimeType": "image/jpeg",
                         "uuid": str(uuid.uuid4()),
-                        "meta": None,
+                        "meta": {
+                            "Size": "832x1216",
+                            "nsfw": True,
+                            "seed": 1650258278,
+                            "draft": False,
+                            "extra": {
+                                "remixOfId": 54864033
+                            },
+                            "steps": 25,
+                            "width": 832,
+                            "height": 1216,
+                            "prompt": "masterpiece, best quality,  (24yo)",
+                            "sampler": "Euler a",
+                            "cfgScale": 5,
+                            "clipSkip": 2,
+                            "quantity": 2,
+                            "workflow": "txt2img",
+                            "baseModel": "Illustrious",
+                            "resources": [],
+                            "Created Date": str(datetime.datetime.now(datetime.timezone.utc).isoformat()),
+                            "negativePrompt": "NSFW,  lowres, worst quality, low quality, bad anatomy, bad hands, 4koma, comic, greyscale, censored, jpeg artifacts, logo, patreon, NUDITY, SUGGESTIVE",
+                            "civitaiResources": [
+                                {
+                                "type": "checkpoint",
+                                "modelVersionId": 1385046,
+                                "modelVersionName": "v2.0"
+                                },
+                                {
+                                "type": "embed",
+                                "weight": 1,
+                                "modelVersionId": 250708,
+                                "modelVersionName": "safe_pos"
+                                },
+                                {
+                                "type": "embed",
+                                "weight": 1,
+                                "modelVersionId": 250712,
+                                "modelVersionName": "safe_neg"
+                                },
+                                {
+                                "type": "embed",
+                                "weight": 1,
+                                "modelVersionId": 106916,
+                                "modelVersionName": "v1.0"
+                                }
+                            ]
+                        },
                         "metadata": {
                             "size": len(image_data),
                             "height": height,
@@ -680,7 +724,7 @@ class KAndyImageSave:
             img.save(output_file, quality=quality, optimize=(optimize_image == "true"), dpi=(dpi, dpi))
             
 
-            a111_params = positive + " \n " + negative
+            a111_params = positive + "\n" + negative
 
             exif_bytes = piexif.dump({
                 "Exif": {
@@ -702,7 +746,11 @@ class KAndyImageSave:
 
 
 class KandySimplePrompt: 
-
+    def __init__(self):
+        self.rnd = random.Random(324532465345)
+        self.ii = 42
+        pass
+     
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -711,17 +759,20 @@ class KandySimplePrompt:
             },
             "optional":{ 
                 "add_prompt": ("STRING", {"multiline": True, "forceInput": True}),
-            } 
+            },
+            "hidden": {"my_unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("PROMPT_TXT",)
 
     FUNCTION = "node"
-
     CATEGORY = "KAndy"
  
-    def node(self, prompt="", add_prompt=""): 
+    def node(self, prompt="", add_prompt="", my_unique_id=0): 
+        self.ii += 1
+        print(f"my_unique_id: {my_unique_id}: {self.ii}")
+        self.rnd.seed(int(my_unique_id) + self.ii)
         out = self.replace_random_part(prompt  + "," + add_prompt)
         return(out,)
 
@@ -729,13 +780,63 @@ class KandySimplePrompt:
         matches = re.findall(r'\{([^{}]*)\}', text)
          
         for match in matches: 
-            options = match.split('|') 
-            replacement = random.choice(options) 
+            options = match.split('|')
+            replacement = self.rnd.choice(options) 
             text = text.replace('{' + match + '}', replacement, 1)
          
         text = text.replace('|', '').replace('{', '').replace('}', '')
         
         return text
+
+class KAndyBatchIndex:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"pipe": ("STRING",),
+                             "batch_index": ("INT", {"default": 0, "min": 0, "max": 63}),
+                             "length": ("INT", {"default": 1, "min": 1, "max": 64}),
+                             },
+                "hidden": {"my_unique_id": "UNIQUE_ID"},}
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("pipe",)
+
+    INPUT_IS_LIST = True
+    
+    FUNCTION = "doit"
+
+    CATEGORY = "KAndy"
+
+    def doit(self, pipe, batch_index, length, my_unique_id=None):
+        new_pipe = list(pipe)[batch_index:]
+        new_pipe = new_pipe[:length]
+        return (new_pipe,)
+
+
+
+
+
+class KAndyBatch2Index:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "pipe": ("IMAGE",),
+            },
+        }
+    
+
+    RETURN_TYPES = ("INT",)
+    RETURN_NAMES = ("index",)
+
+    INPUT_IS_LIST = True
+    
+    FUNCTION = "doit"
+
+    CATEGORY = "KAndy"
+
+    def doit(self, pipe):
+        length = len(pipe)
+        return (list(range(0, length)),)
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -749,7 +850,9 @@ NODE_CLASS_MAPPINGS = {
     "KPornImageAPI": KPornImageAPI,
     "KCivitaiPostAPI": KCivitaiPostAPI,
     "KAndyImageSave": KAndyImageSave,
-    "KandySimplePrompt": KandySimplePrompt
+    "KandySimplePrompt": KandySimplePrompt,
+    "KAndyBatchIndex": KAndyBatchIndex,
+    "KAndyBatch2Index": KAndyBatch2Index
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -763,5 +866,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KPornImageAPI": "PornImageAPI",
     "KCivitaiPostAPI": "Civitai Post API",
     "KAndyImageSave": "Image Save",
-    "KandySimplePrompt": "Simple Prompt"
+    "KandySimplePrompt": "Simple Prompt",
+    "KAndyBatchIndex": "BatchIndex",
+    "KAndyBatch2Index": "Batch2Index"
 }
