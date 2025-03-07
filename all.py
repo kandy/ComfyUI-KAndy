@@ -1,98 +1,7 @@
 import requests
-import urllib
 import importlib
 import os
 
-
-class KCivitPromptAPI:
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "limit": ("INT", {"default": 0, "min": 0, "max": 128000, "step": 1},)
-            },
-            "optional": { 
-                "cursor": ("STRING",),
-                "postId": ("STRING",),
-                "modelId": ("STRING",),
-                "username": ("STRING",),
-                "period": (["AllTime", "Year", "Month", "Week", "Day", ""],), 
-                "nsfw": (["Soft", "Mature", "X", "XXX", "All", ""],),
-                "sort": (["Most Reactions", "Most Comments","Newest", ""],) 
-            }
-        }
-
-    RETURN_NAMES = ("URLs","cursor")
-    RETURN_TYPES = ("STRING", "STRING",)
-    
-    CATEGORY = "kandy"
-    
-    FUNCTION = "ffetch"
-    
-    def ffetch(self, **kwargs):
-        url = "https://civitai.com/api/v1/images"
-        urls = []
-        params = {k: v for k, v in kwargs.items() if v}
-        url = '{}?{}'.format(url, urllib.parse.urlencode(params))
-        print(url)
-        response = requests.get(url)
-
-        if response.status_code == 200:
-            body = response.json()
-            prompts = [item.get("meta").get("prompt") for item in body.get("items") if item.get("meta") and item.get("meta").get("prompt")] 
-            # print(prompts)
-            return (prompts, body.get("metadata").get("nextCursor"),)
-        else:
-            print(response.status_code)
-
-        return (urls,"",)
-
-
-class KCivitImagesAPI:
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "limit": ("INT", {"default": 0, "min": 0,  "step": 1},)
-            },
-            "optional": { 
-                "cursor": ("STRING",),
-                "postId": ("STRING",),
-                "modelId": ("STRING",),
-                "username": ("STRING",),
-                "period": (["AllTime", "Year", "Month", "Week", "Day", ""],), 
-                "nsfw": (["Soft", "Mature", "X", ""],),
-                "sort": (["Most Reactions", "Most Comments","Newest", ""],) 
-            }
-        }
-
-    RETURN_NAMES = ("IMAGES", "Cursor",)
-    RETURN_TYPES = ("STRING","STRING",)
-
-    FUNCTION = "ffetch"
-    CATEGORY = "kandy"
-
-    def ffetch(self, **kwargs):
-        url = "https://civitai.com/api/v1/images"
-        urls = []
-        kwargs = {k: v for k, v in kwargs.items() if v}
-        url = '{}?{}'.format(url, urllib.parse.urlencode(kwargs))
-        print(url)
-        response = requests.get(url)
-
-        if response.status_code == 200:
-            body = response.json()
-            print(body.get("metadata"))
-            images = [item.get("url") for item in body.get("items")] 
-            # print(images)
-            urls = images 
-            return (urls, body.get("metadata").get("nextCursor"),)
-        else:
-            print(response.status_code)
-
-        return (urls, "",)
 
 
 
@@ -119,7 +28,7 @@ class KAndyLoadImageFromUrl:
         # get the image from the url
         headers = {
             "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-            "accept-language": "en,en-US;q=0.9,ru;q=0.8",
+            "accept-language": "en,en-US;q=0.9",
             "cache-control": "no-cache",
             "pragma": "no-cache",
             "priority": "i",
@@ -152,130 +61,7 @@ class KAndyLoadImageFromUrl:
         else:
             return torch.cat([single_pil2tensor(img) for img in images], dim=0)
 
-
-
-import torch
-import random
-
-class KAndyNoiseCondition:
-    """Adds noise to a conditioning tensor."""
-
-    RETURN_TYPES = ("CONDITIONING",)
-    FUNCTION = "run"
-    CATEGORY = "kandy"
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "conditioning": ("CONDITIONING",),
-                "op_type": (["MUL", "ADD"],),
-                "noise_level": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 100.0, "step": 0.01}), # Added noise level input
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffFF})  # Added seed for reproducibility
-            }
-        }
-
-    def run(self, conditioning, op_type, noise_level, seed):
-        if not isinstance(conditioning, list):
-            print(f"Warning: Conditioning input is not a list. Got type: {type(conditioning)}")
-            return (conditioning,)
-    
-        noisy_conditioning = []
-        for cond in conditioning:
-            tensor = cond[0]
-            #torch.manual_seed(seed)
-            noise = torch.randn_like(tensor, memory_format=torch.contiguous_format) * noise_level # Scale noise by mean absolute value
-            if op_type == "MUL":
-                noisy_tensor = tensor + tensor * noise
-            else:    
-                noisy_tensor = tensor + noise * tensor.abs().mean()
-
-            noisy_conditioning.append((noisy_tensor, cond[1]))
-
-        return (noisy_conditioning,)
-   
-
-import requests
-from bs4 import BeautifulSoup
-from lxml import html
-
-class KAndyImagesByCss:
-    """Loads images from a URL using CSS selectors or XPath."""
-
-    RETURN_TYPES = ("STRING",)
-    OUTPUT_IS_LIST = (True,)
-    
-    FUNCTION = "run"
-    CATEGORY = "kandy"
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "url": ("STRING",),
-                "selector": ("STRING",),  # Renamed "css" to "selector" for clarity
-                "attr": ("STRING", {"default": "href"}),
-                "use_xpath": ("BOOLEAN", {"default": False}), # Added option to use XPath
-                "limit": ("INT", {"default": 0, "min": 0, "max": 64}),
-                "start_from": ("INT", {"default": 0, "min": 0, "max": 64}),
-            }
-        }
-
-    def run(self, url, selector, attr, use_xpath, limit, start_from=0):
-        urls = []
-        # print(f"{url}, {selector}, {attr}, {use_xpath}, {limit}, {start_from}")
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
-        html_content = response.text
-        #print(html_content)
-        if use_xpath:
-            tree = html.fromstring(html_content)
-            elements = tree.xpath(selector)
-            urls = [str(element.get(attr)) for element in elements if element.get(attr)]
-        else: #use css
-            soup = BeautifulSoup(html_content, "html.parser")
-            elements = soup.select(selector)
-            urls = [str(img[attr]) for img in elements]
-        if start_from > 0:
-            urls = urls[start_from:]
-        if limit > 0:
-            urls = urls[:limit]
-        # print(f"{urls}")
-        return (urls,)
-
-
-class KPornImageAPI:
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "seed": ("INT",)
-            },
-        }
-    
-    @classmethod
-    def IS_CHANGED(c, **kwars):
-        return True  
-
-    RETURN_NAMES = ("IMAGES",)
-    RETURN_TYPES = ("STRING",)
-
-    FUNCTION = "ffetch"
-    CATEGORY = "kandy"
-
-    def ffetch(self, seed):
-        url = "https://www.pornpics.com/random/index.php?lang=en"
-        print(url)
-        response = requests.post(url, json = {'seed': seed})
-
-        if response.status_code == 200:
-            body = response.json()
-            urls = body.get('link') 
-            return (urls,)
-        else:
-            print(response.status_code)
-            return ("",)   
+ 
 
 import sqlitedict
 import random
@@ -370,23 +156,28 @@ class KandySimplePrompt:
         return text
 
 
+# class AnyType(str):
+#     """A special type that can be connected to any other types."""
+#     def __ne__(self, __value: object) -> bool:
+#         return False
+# any_type = AnyType("*")
+
+
+from .tagger import KAndyWD14Tagger
+from .tagger import KAndyTaggerModelLoader
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
-    "KAndyCivitPromptAPI": KCivitPromptAPI,
     "KAndyLoadImageFromUrl": KAndyLoadImageFromUrl,
-    "KAndyCivitImagesAPI": KCivitImagesAPI,
-    "KAndyNoiseCondition": KAndyNoiseCondition,
-    "KAndyImagesByCss": KAndyImagesByCss,
     "KPromtGen": KPromtGen,
-    "KPornImageAPI": KPornImageAPI,
-
-    "KandySimplePrompt": KandySimplePrompt
+    "KandySimplePrompt": KandySimplePrompt,
+    "KAndyTaggerModelLoader": KAndyTaggerModelLoader,
+    "KAndyWD14Tagger": KAndyWD14Tagger,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "KAndyCivitPromptAPI": " Civit Prompt API",
     "KAndyLoadImageFromUrl": "Load Image From Url",
     "KAndyCivitImagesAPI": "Civit Images API",
     "KAndyNoiseCondition": "NoiseCondition",
@@ -394,7 +185,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KPromtGen": "Promt Generator",
     "KPornImageAPI": "PornImageAPI",
    
-    "KandySimplePrompt": "Simple Prompt"
+    "KandySimplePrompt": "Simple Prompt",
+
+    "KAndyTaggerModelLoader": "Tagger ModelLoader",
+    "KAndyWD14Tagger": "WD14 Tagger",
+    
 }
 
 

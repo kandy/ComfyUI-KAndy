@@ -2,6 +2,7 @@ import uuid
 import requests
 import datetime
 from PIL import Image
+import piexif
 
 class KCivitaiPostAPI:
     """Post a set of images to Civitai"""
@@ -71,8 +72,17 @@ class KCivitaiPostAPI:
             index += 1
             width = 512 
             height = 512
+            prompt = "masterpiece, best quality,  (24yo)"
             with Image.open(image_path) as img:
                 width, height = img.size
+                # Extract prompt from EXIF metadata
+                try:
+                    exif_data = img.info.get("exif")
+                    if exif_data:
+                        exif = piexif.load(exif_data)
+                        prompt = exif.get("Exif").get(piexif.ExifIFD.UserComment).decode('utf8').replace('UNICODE\x00', "").replace('\x00', "").split("Negative prompt:")[0]
+                except Exception as e:
+                    print(f"Failed to read EXIF data: {e}")
             with open(image_path, "rb") as image_file:
                 # Step 2.1: Get upload image url
                 image_data = image_file.read()
@@ -135,13 +145,13 @@ class KCivitaiPostAPI:
                             "nsfw": True,
                             "seed": 1650258278,
                             "draft": False,
-                            "extra": {
-                                "remixOfId": 54864033
-                            },
+                            # "extra": {
+                            #     "remixOfId": 54864033
+                            # },
                             "steps": 25,
                             "width": 832,
                             "height": 1216,
-                            "prompt": "masterpiece, best quality,  (24yo)",
+                            "prompt": prompt,
                             "sampler": "Euler a",
                             "cfgScale": 5,
                             "clipSkip": 2,
@@ -154,8 +164,13 @@ class KCivitaiPostAPI:
                             "civitaiResources": [
                                 {
                                 "type": "checkpoint",
-                                "modelVersionId": 1385046,
-                                "modelVersionName": "v2.0"
+                                "modelVersionId": 1429555,
+                                "modelVersionName": "v1.0"
+                                },
+                                {
+                                "type": "checkpoint",
+                                "modelVersionId": 1564095,
+                                "modelVersionName": "v1.0"
                                 },
                                 {
                                 "type": "embed",
