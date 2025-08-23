@@ -24,12 +24,12 @@ class RegexpMatchNode:
     FUNCTION = "fmatch"
     CATEGORY = "kandy"
 
-    def fmatch(text: str, regexp: str, group_id: int) -> Dict[str, Any]:
+    def fmatch(self, text, regexp: str, group_id: int) -> tuple:
         try:
             pattern = re.compile(regexp)
             match = pattern.search(text)
             if match:
-                matched_text = match.group(group_id) if group_id < len(match.groups()) + 1 else ""
+                matched_text = match.group(group_id) if group_id <= len(match.groups()) else ""
                 return (True, matched_text)
             else:
                 return (False, "")

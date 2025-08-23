@@ -1,67 +1,5 @@
-import requests
 import importlib
 import os
-
-
-
-
-from PIL import Image, ImageOps
-import torch
-import numpy as np
-
-class KAndyLoadImageFromUrl:
-    """Load an image from the given URL"""
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "url": ("STRING",),
-            }
-        }
-
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "load"
-    CATEGORY = "kandy"
-
-    def load(self, url):
-        # get the image from the url
-        headers = {
-            "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-            "accept-language": "en,en-US;q=0.9",
-            "cache-control": "no-cache",
-            "pragma": "no-cache",
-            "priority": "i",
-            "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "image",
-            "sec-fetch-mode": "no-cors",
-            "sec-fetch-site": "cross-site",  
-            "referrer": "https://www.reddit.com/",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
-        }
-   
-        image = Image.open(requests.get(url, stream=True, headers=headers).raw)
-        image = ImageOps.exif_transpose(image)
-        return (self.pil2tensor(image),)
-
-    def pil2tensor(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
-        """Converts a PIL Image or a list of PIL Images to a tensor."""
-
-        def single_pil2tensor(image: Image.Image) -> torch.Tensor:
-            np_image = np.array(image).astype(np.float32) / 255.0
-            if np_image.ndim == 2:  # Grayscale
-                return torch.from_numpy(np_image).unsqueeze(0)  # (1, H, W)
-            else:  # RGB or RGBA
-                return torch.from_numpy(np_image).unsqueeze(0)  # (1, H, W, C)
-
-        if isinstance(images, Image.Image):
-            return single_pil2tensor(images)
-        else:
-            return torch.cat([single_pil2tensor(img) for img in images], dim=0)
-
- 
 
 import sqlitedict
 import random
@@ -156,6 +94,61 @@ class KandySimplePrompt:
         return text
 
 
+
+class KandySave: 
+    STORAGE = ''
+    
+     
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "text": ("STRING", {"multiline": True}), 
+            },
+        }
+    
+    @classmethod
+    def IS_CHANGED(c, **kwargs):
+        return float("NaN")
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("text",)
+
+    FUNCTION = "node"
+    CATEGORY = "KAndy"
+ 
+    def node(self, text): 
+        KandySave.STORAGE = text
+        print(f"[KandySave] Saved text: {text}")
+        return (text,)
+ 
+    
+class KandyLoad:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "default_text": ("STRING", {"multiline": True}), 
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("text",)
+
+    FUNCTION = "node"
+    CATEGORY = "KAndy"
+    
+    @classmethod
+    def IS_CHANGED(c, **kwargs):
+        return float("NaN")  # This will always trigger a change, forcing the node to update every time it's used. 
+    
+    def node(self, default_text): 
+        print(f"[KandyLoad] Loaded text: {KandySave.STORAGE}")
+        return (KandySave.STORAGE if KandySave.STORAGE else default_text,)
+
+
+
+
 # class AnyType(str):
 #     """A special type that can be connected to any other types."""
 #     def __ne__(self, __value: object) -> bool:
@@ -169,37 +162,31 @@ from .tagger import KAndyTaggerModelLoader
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
-    "KAndyLoadImageFromUrl": KAndyLoadImageFromUrl,
     "KPromtGen": KPromtGen,
     "KandySimplePrompt": KandySimplePrompt,
     "KAndyTaggerModelLoader": KAndyTaggerModelLoader,
     "KAndyWD14Tagger": KAndyWD14Tagger,
+    "KandySave": KandySave,
+    "KandyLoad": KandyLoad,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "KAndyLoadImageFromUrl": "Load Image From Url",
-    "KAndyCivitImagesAPI": "Civit Images API",
-    "KAndyNoiseCondition": "NoiseCondition",
-    "KAndyImagesByCss": "ImagesByCss",
     "KPromtGen": "Promt Generator",
-    "KPornImageAPI": "PornImageAPI",
-   
     "KandySimplePrompt": "Simple Prompt",
-
     "KAndyTaggerModelLoader": "Tagger ModelLoader",
     "KAndyWD14Tagger": "WD14 Tagger",
-    
+    "KandySave": "Save Text",
+    "KandyLoad": "Load Text",
 }
 
 
 nodes_dir = os.path.join(os.path.dirname(__file__), 'nodes')
 node_list = [os.path.splitext(f)[0] for f in os.listdir(nodes_dir) if os.path.isfile(os.path.join(nodes_dir, f)) and f.endswith('.py')]
 
-
 for module in node_list:
     try:
-        imported_module = importlib.import_module(f".nodes.{module}", package="ComfyUI-Kandy")
+        imported_module = importlib.import_module(f".nodes.{module}", __package__)
 
         module_key = imported_module.__NODE__.__name__
         module_name = ' '.join(word.capitalize() for word in module.split('-'))

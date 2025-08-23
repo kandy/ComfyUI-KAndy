@@ -23,6 +23,7 @@ class KCivitImagesAPI:
 
     RETURN_NAMES = ("IMAGES", "Cursor",)
     RETURN_TYPES = ("STRING","STRING",)
+    OUTPUT_IS_LIST = (True, False,)
 
     FUNCTION = "ffetch"
     CATEGORY = "kandy"
