@@ -32,7 +32,7 @@ class Ovis2ImageCaption:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("caption",)
     FUNCTION = "generate_caption"
-    CATEGORY = "Ovis2"
+    CATEGORY = "KAndy"
 
     def generate_caption(self, model, image, prompt, max_new_tokens, temperature, thinking=False):
         # Convert ComfyUI image to PIL image format

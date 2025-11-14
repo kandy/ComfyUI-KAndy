@@ -154,6 +154,31 @@ class KCivitaiPostAPI:
                 
                 hash = 'U9Hd]RJ502wPx]$%i_Iq00sE~AtLIUIqS5-U'
                 # TODO: CACLULATE HASH
+                civitaiResources = [
+                    {
+                    "type": "checkpoint",
+                    "modelVersionId": int(modelId) if modelId else 1429555,
+                    "modelVersionName": "v1.0"
+                    },
+                    {
+                    "type": "embed",
+                    "weight": 1,
+                    "modelVersionId": 250708,
+                    "modelVersionName": "safe_pos"
+                    },
+                    {
+                    "type": "embed",
+                    "weight": 1,
+                    "modelVersionId": 250712,
+                    "modelVersionName": "safe_neg"
+                    },
+                    {
+                    "type": "embed",
+                    "weight": 1,
+                    "modelVersionId": 106916,
+                    "modelVersionName": "v1.0"
+                    }
+                ]
                 meta = {
                     "Size": "832x1216",
                     "nsfw": True,
@@ -173,31 +198,7 @@ class KCivitaiPostAPI:
                     "resources": [],
                     "Created Date": str(datetime.datetime.now(datetime.timezone.utc).isoformat()),
                     "negativePrompt": "NSFW,  lowres, worst quality, low quality, bad anatomy, bad hands, 4koma, comic, greyscale, censored, jpeg artifacts, logo, patreon, NUDITY, SUGGESTIVE",
-                    "civitaiResources": [
-                        {
-                        "type": "checkpoint",
-                        "modelVersionId": modelId if modelId else 1429555,
-                        "modelVersionName": "v1.0"
-                        },
-                        {
-                        "type": "embed",
-                        "weight": 1,
-                        "modelVersionId": 250708,
-                        "modelVersionName": "safe_pos"
-                        },
-                        {
-                        "type": "embed",
-                        "weight": 1,
-                        "modelVersionId": 250712,
-                        "modelVersionName": "safe_neg"
-                        },
-                        {
-                        "type": "embed",
-                        "weight": 1,
-                        "modelVersionId": 106916,
-                        "modelVersionName": "v1.0"
-                        }
-                    ]
+                    "civitaiResources": civitaiResources
                 }
                
                 # Step 3: Add image to post
@@ -246,7 +247,7 @@ class KCivitaiPostAPI:
             "title": title,
             "description": description,
             "tags": [],
-            "publishedAt": str((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10)).isoformat()),
+            "publishedAt": str((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=1)).isoformat()),
             "collectionId": None,
             "collectionTagId": None,
             "authed": True
