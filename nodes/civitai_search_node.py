@@ -19,6 +19,7 @@ class CivitaiSearchNode:
                 "offset": ("INT", {"default": 0, "min": 0}),
                 "sort_by": (['stats.tippedAmountCountAllTime:desc', 'stats.reactionCountAllTime:desc', 'createdAtUnix:desc'], {"default": "stats.reactionCountAllTime:desc"}),
                 "query": ("STRING", {"default": ""}),
+                "tags": ("STRING", {"default": ""}),
             }
         }
 
@@ -28,7 +29,7 @@ class CivitaiSearchNode:
     CATEGORY = "kandy"
     OUTPUT_IS_LIST = (True, True, False)
 
-    def search_civitai(self, auth_token, start_date, end_date, limit, offset, sort_by = "stats.reactionCountAllTime:desc", query = ""):
+    def search_civitai(self, auth_token, start_date, end_date, limit, offset, sort_by = "stats.reactionCountAllTime:desc", query = "", tags = ""):
         """
         Searches Civitai for images within the specified date range.
         """
@@ -75,14 +76,19 @@ class CivitaiSearchNode:
                 ]
                 
             }
+
+            if tags:
+                tags_filter = f"\"tagNames\"=\"{tags}\""
+                data["queries"][0]["filter"].append(tags_filter)
+                                                    
             print(data)
             response = requests.post(url, headers=headers, json=data)
-            print(response)
+       
             response.raise_for_status()  # Raise an exception for bad status codes
+            print(response.request.url)
 
             # Parse the response
             json_data = response.json()
-            print(json_data)
 
             return self.extract(json_data)
 
@@ -111,7 +117,7 @@ class CivitaiSearchNode:
                     if name.count(".") == 0 and mime_type:
                         ext = mime_type.split("/")[-1]
                         name += f".{ext}"
-                    image_url = f"https://image.civitai.com/xG1nksdfTMzGDvpLrqFT7Wd/{url}/anim=false,width=450/{name}"
+                    image_url = f"https://image.civitai.com/xG1nksdfTMzGDvpLrqFT7Wd/{url}/anim=false,original=true,quality=90,optimized=true/{name}"
                     image_urls.append(image_url)
                     prompts.append(hit.get("prompt") or "")
         return (image_urls, prompts, "ok",)
