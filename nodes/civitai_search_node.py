@@ -12,7 +12,7 @@ class CivitaiSearchNode:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "auth_token": ("STRING", {"default": "046aefbf50f89e8be2dafbcf98b42f5cd874491fd6d6d59a151161159d408405"}),
+                "auth_token": ("STRING", {"default": "8c46eb2508e21db1e9828a97968d91ab1ca1caa5f70a00e88a2ba1e286603b61"}),
                 "start_date": ("STRING", {"default": "2024-01-01", "format": "date"}),
                 "end_date": ("STRING", {"default": "2024-12-31", "format": "date"}),
                 "limit": ("INT", {"default": 10, "min": 1}),
@@ -20,6 +20,7 @@ class CivitaiSearchNode:
                 "sort_by": (['stats.tippedAmountCountAllTime:desc', 'stats.reactionCountAllTime:desc', 'createdAtUnix:desc'], {"default": "stats.reactionCountAllTime:desc"}),
                 "query": ("STRING", {"default": ""}),
                 "tags": ("STRING", {"default": ""}),
+                "model": ("STRING", {"default": ""}),
             }
         }
 
@@ -29,7 +30,7 @@ class CivitaiSearchNode:
     CATEGORY = "kandy"
     OUTPUT_IS_LIST = (True, True, False)
 
-    def search_civitai(self, auth_token, start_date, end_date, limit, offset, sort_by = "stats.reactionCountAllTime:desc", query = "", tags = ""):
+    def search_civitai(self, auth_token, start_date, end_date, limit, offset, sort_by = "stats.reactionCountAllTime:desc", query = "", tags = "", model = ""):
         """
         Searches Civitai for images within the specified date range.
         """
@@ -77,10 +78,17 @@ class CivitaiSearchNode:
                 
             }
 
+
+
             if tags:
                 tags_filter = f"\"tagNames\"=\"{tags}\""
                 data["queries"][0]["filter"].append(tags_filter)
-                                                    
+
+            if model and int(model.strip()) > 0:
+                model = int(model.strip())
+                model_filter = f"modelVersionId={model}"
+                data["queries"][0]["filter"].append(model_filter)
+
             print(data)
             response = requests.post(url, headers=headers, json=data)
        

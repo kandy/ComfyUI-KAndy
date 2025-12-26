@@ -56,7 +56,11 @@ class KandySimplePrompt:
         self.rnd = random.Random(324532465345)
         self.ii = 42
         pass
-     
+    
+    @classmethod
+    def IS_CHANGED(c, **kwargs):
+        return float("NaN")
+    
     @classmethod
     def INPUT_TYPES(s):
         return {
