@@ -39,7 +39,8 @@ class RegexFilterNode:
                     match2 = re.search(regex2_pattern, data)
 
                     if match1 and not match2:
-                        return (target_string,)
+                       output_strings.append(target_string)
+                       
                 except re.error as e:
                     print(f"Regex error in line '{line}': {e}")
 
