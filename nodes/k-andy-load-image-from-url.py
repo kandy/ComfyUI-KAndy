@@ -3,6 +3,7 @@ from PIL import Image, ImageOps
 import torch
 import numpy as np
 
+
 class KAndyLoadImageFromUrl:
     """Load an image from the given URL"""
 
@@ -25,18 +26,20 @@ class KAndyLoadImageFromUrl:
                 "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
                 "accept-language": "en,en-US;q=0.9",
                 "priority": "i",
-                "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+                "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
                 "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "\"Windows\"",
+                "sec-ch-ua-platform": '"Windows"',
                 "sec-fetch-dest": "image",
                 "sec-fetch-mode": "no-cors",
-                "sec-fetch-site": "cross-site",  
+                "sec-fetch-site": "cross-site",
                 "referrer": "https://www.reddit.com/",
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36",
             }
             for i in range(3):
                 try:
-                    image = Image.open(requests.get(url, stream=True, headers=headers, timeout=3).raw)
+                    image = Image.open(
+                        requests.get(url, stream=True, headers=headers, timeout=3).raw
+                    )
                     break
                 except requests.exceptions.Timeout:
                     if i == 2:
@@ -62,5 +65,6 @@ class KAndyLoadImageFromUrl:
             return single_pil2tensor(images)
         else:
             return torch.cat([single_pil2tensor(img) for img in images], dim=0)
+
 
 __NODE__ = KAndyLoadImageFromUrl

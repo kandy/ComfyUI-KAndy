@@ -3,6 +3,7 @@ import datetime
 import json
 from urllib.parse import quote
 
+
 class CivitaiSearchNode:
     """
     A ComfyUI node to search Civitai for images based on date range and authorization token.
@@ -12,34 +13,67 @@ class CivitaiSearchNode:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "auth_token": ("STRING", {"default": "8c46eb2508e21db1e9828a97968d91ab1ca1caa5f70a00e88a2ba1e286603b61"}),
+                "auth_token": (
+                    "STRING",
+                    {
+                        "default": "8c46eb2508e21db1e9828a97968d91ab1ca1caa5f70a00e88a2ba1e286603b61"
+                    },
+                ),
                 "start_date": ("STRING", {"default": "2024-01-01", "format": "date"}),
                 "end_date": ("STRING", {"default": "2024-12-31", "format": "date"}),
                 "limit": ("INT", {"default": 10, "min": 1}),
                 "offset": ("INT", {"default": 0, "min": 0}),
-                "sort_by": (['stats.tippedAmountCountAllTime:desc', 'stats.reactionCountAllTime:desc', 'createdAtUnix:desc'], {"default": "stats.reactionCountAllTime:desc"}),
+                "sort_by": (
+                    [
+                        "stats.tippedAmountCountAllTime:desc",
+                        "stats.reactionCountAllTime:desc",
+                        "createdAtUnix:desc",
+                    ],
+                    {"default": "stats.reactionCountAllTime:desc"},
+                ),
                 "query": ("STRING", {"default": ""}),
                 "tags": ("STRING", {"default": ""}),
                 "model": ("STRING", {"default": ""}),
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING",)
-    RETURN_NAMES = ("urls", "prompt", "success",)
+    RETURN_TYPES = (
+        "STRING",
+        "STRING",
+        "STRING",
+    )
+    RETURN_NAMES = (
+        "urls",
+        "prompt",
+        "success",
+    )
     FUNCTION = "search_civitai"
     CATEGORY = "kandy"
     OUTPUT_IS_LIST = (True, True, False)
 
-    def search_civitai(self, auth_token, start_date, end_date, limit, offset, sort_by = "stats.reactionCountAllTime:desc", query = "", tags = "", model = ""):
+    def search_civitai(
+        self,
+        auth_token,
+        start_date,
+        end_date,
+        limit,
+        offset,
+        sort_by="stats.reactionCountAllTime:desc",
+        query="",
+        tags="",
+        model="",
+    ):
         """
         Searches Civitai for images within the specified date range.
         """
         try:
             # Convert dates to Unix timestamps (milliseconds)
-            start_date_ts = int(datetime.datetime.strptime(start_date, "%Y-%m-%d").timestamp() * 1000)
-            end_date_ts = int(datetime.datetime.strptime(end_date, "%Y-%m-%d").timestamp() * 1000)
-
-
+            start_date_ts = int(
+                datetime.datetime.strptime(start_date, "%Y-%m-%d").timestamp() * 1000
+            )
+            end_date_ts = int(
+                datetime.datetime.strptime(end_date, "%Y-%m-%d").timestamp() * 1000
+            )
 
             # Construct the API request
             url = "https://search.civitai.com/multi-search"
@@ -51,13 +85,13 @@ class CivitaiSearchNode:
                 "content-type": "application/json",
                 "pragma": "no-cache",
                 "priority": "u=1, i",
-                "sec-ch-ua": "\"Chromium\";v=\"136\", \"Google Chrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+                "sec-ch-ua": '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
                 "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "\"Windows\"",
+                "sec-ch-ua-platform": '"Windows"',
                 "sec-fetch-dest": "empty",
                 "sec-fetch-mode": "cors",
                 "sec-fetch-site": "same-site",
-                "x-meilisearch-client": "Meilisearch instant-meilisearch (v0.13.5) ; Meilisearch JavaScript (v0.34.0)"
+                "x-meilisearch-client": "Meilisearch instant-meilisearch (v0.13.5) ; Meilisearch JavaScript (v0.34.0)",
             }
             data = {
                 "queries": [
@@ -75,13 +109,10 @@ class CivitaiSearchNode:
                         "sort": [sort_by],
                     },
                 ]
-                
             }
 
-
-
             if tags:
-                tags_filter = f"\"tagNames\"=\"{tags}\""
+                tags_filter = f'"tagNames"="{tags}"'
                 data["queries"][0]["filter"].append(tags_filter)
 
             if model and int(model.strip()) > 0:
@@ -91,7 +122,7 @@ class CivitaiSearchNode:
 
             print(data)
             response = requests.post(url, headers=headers, json=data)
-       
+
             response.raise_for_status()  # Raise an exception for bad status codes
             print(response.request.url)
 
@@ -107,7 +138,11 @@ class CivitaiSearchNode:
         # except ValueError as e:
         #     return ([], [], f"Error converting date: {e}",)
         except Exception as e:
-            return ([], [], f"An unexpected error occurred: {e}",)
+            return (
+                [],
+                [],
+                f"An unexpected error occurred: {e}",
+            )
 
     def extract(self, json_data):
         """
@@ -128,6 +163,11 @@ class CivitaiSearchNode:
                     image_url = f"https://image.civitai.com/xG1nksdfTMzGDvpLrqFT7Wd/{url}/anim=false,original=true,quality=90,optimized=true/{name}"
                     image_urls.append(image_url)
                     prompts.append(hit.get("prompt") or "")
-        return (image_urls, prompts, "ok",)
+        return (
+            image_urls,
+            prompts,
+            "ok",
+        )
+
 
 __NODE__ = CivitaiSearchNode

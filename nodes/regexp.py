@@ -1,8 +1,9 @@
 import re
 from typing import Any, Dict
 
+
 class RegexpMatchNode:
-    """"
+    """ "
     "" A node to match a regular expression against a given text.
     "" It returns whether a match is found and the matched text based on the specified group ID.
     "" The node uses Python's re module for regex operations.
@@ -17,7 +18,7 @@ class RegexpMatchNode:
                 "group_id": ("INT", {"default": 0, "min": 0}),
             }
         }
-  
+
     RETURN_TYPES = ("BOOL", "STRING")
     RETURN_NAMES = ("match", "matched_text")
 
@@ -29,11 +30,14 @@ class RegexpMatchNode:
             pattern = re.compile(regexp)
             match = pattern.search(text)
             if match:
-                matched_text = match.group(group_id) if group_id <= len(match.groups()) else ""
+                matched_text = (
+                    match.group(group_id) if group_id <= len(match.groups()) else ""
+                )
                 return (True, matched_text)
             else:
                 return (False, "")
         except re.error as e:
             return (False, f"Error: {str(e)}")
+
 
 __NODE__ = RegexpMatchNode

@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 import io
 
+
 class TelegramBotPost:
     def __init__(self):
         pass
@@ -12,16 +13,9 @@ class TelegramBotPost:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "bot_token": ("STRING", {
-                    "multiline": False
-                }),
-                "chat_id": ("STRING", {
-                    "multiline": False
-                }),
-                "text": ("STRING", {
-                    "multiline": True,
-                    "default": ""
-                }),
+                "bot_token": ("STRING", {"multiline": False}),
+                "chat_id": ("STRING", {"multiline": False}),
+                "text": ("STRING", {"multiline": True, "default": ""}),
             }
         }
 
@@ -38,16 +32,16 @@ class TelegramBotPost:
         url = f"https://api.telegram.org/bot{bot_token}/sendPhoto?chat_id={chat_id}&caption={text}"
 
         # Convert tensor to PIL Image
-        i = 255. * image[0].cpu().numpy()
+        i = 255.0 * image[0].cpu().numpy()
         img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
 
         # Save image to a byte buffer
         buffer = io.BytesIO()
-        img.save(buffer, format='JPEG')
+        img.save(buffer, format="JPEG")
         buffer.seek(0)
 
-        files = {'photo':  buffer}
-       
+        files = {"photo": buffer}
+
         try:
             response = requests.post(url, files=files)
             if response.status_code == 200:
@@ -61,5 +55,6 @@ class TelegramBotPost:
             print(f"Telegram Bot: Error posting image: {e}")
 
         return ()
-    
+
+
 __NODE__ = TelegramBotPost

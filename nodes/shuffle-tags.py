@@ -1,5 +1,6 @@
 import random
 
+
 class KAndyShuffleTags:
     """
     A custom node for shuffling tags.
@@ -10,24 +11,24 @@ class KAndyShuffleTags:
 
     @classmethod
     def INPUT_TYPES(cls):
-
         return {
             "required": {
                 "tags": ("STRING", {"multiline": True}),
             }
         }
-    
+
     @classmethod
     def IS_CHANGED(c, **kwars):
         return True
-    
+
     RETURN_TYPES = ("STRING",)
     FUNCTION = "shuffle_tags"
     CATEGORY = "KAndy"
 
     def shuffle_tags(self, tags):
-        tag_list = tags.split(',')
+        tag_list = tags.split(",")
         random.shuffle(tag_list)
-        return (','.join(tag_list),)
+        return (",".join(tag_list),)
+
 
 __NODE__ = KAndyShuffleTags
